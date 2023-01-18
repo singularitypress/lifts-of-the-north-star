@@ -12,7 +12,7 @@ export interface Exercise {
 export interface Workout {
   id: string;
   name: string;
-  exercises: Exercise[];
+  exercises: string[];
 }
 
 export interface WorkoutDay {

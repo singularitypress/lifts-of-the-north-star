@@ -1,9 +1,11 @@
 import { Container, Modal } from "@components/global";
 import { Exercise } from "@types";
 import Head from "next/head";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Exercises() {
+  const [editId, setEditId] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [newExerciseVisible, setNewExerciseVisible] = useState(false);
   const [name, setName] = useState<string>("");
@@ -54,61 +56,64 @@ export default function Exercises() {
             </button>
           </div>
           <ul className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {exercises.map(({ id, name, sets }) => (
-              <li
-                key={id}
-                className="border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3"
-              >
-                <div className="w-full flex items-end justify-end">
-                  <button
-                    className="text-slate-900 dark:text-slate-100 hover:text-blue-500 dark:hover:text-blue-500"
-                    onClick={() => {
-                      setName(name);
-                      setSets(Object.keys(sets).length);
-                      setSetList(
-                        Object.keys(sets).map((set) => ({
-                          type: sets[set].type,
-                          value: sets[set].value,
-                        }))
-                      );
-                      setNewExerciseVisible(true);
-                    }}
-                  >
-                    <i className="fa-solid fa-edit"></i>
-                  </button>
-                  <button
-                    onClick={() => {
-                      const newExercises = [...exercises];
-                      newExercises.splice(
-                        newExercises.findIndex((e) => e.id === id),
-                        1
-                      );
-                      setExercises(newExercises);
-                      localStorage.setItem(
-                        "exercises",
-                        JSON.stringify(newExercises)
-                      );
-                    }}
-                    className="ml-4 text-slate-900 dark:text-slate-100 hover:text-red-500 dark:hover:text-red-500">
-                    <i className="fa-solid fa-trash"></i>
-                  </button>
-                </div>
-                <strong>Name:</strong> {name}
-                <br />
-                <strong>Sets:</strong>
-                <br />
-                {Object.keys(sets).map((set) => {
-                  console.log(sets[set]);
-                  return (
-                    <div key={set}>
-                      <>
-                        {sets[set].value} {sets[set].type}
-                      </>
-                    </div>
-                  );
-                })}
-              </li>
-            ))}
+            {exercises.map(({ id, name: workoutName, sets: exerciseSets }) => {
+              return (
+                <li
+                  key={id}
+                  className="border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3"
+                >
+                  <div className="w-full flex items-end justify-end">
+                    <button
+                      className="text-slate-900 dark:text-slate-100 hover:text-blue-500 dark:hover:text-blue-500"
+                      onClick={() => {
+                        setName(workoutName);
+                        setSets(Object.keys(exerciseSets).length);
+                        setSetList(
+                          Object.keys(exerciseSets).map((set) => ({
+                            type: exerciseSets[set].type,
+                            value: exerciseSets[set].value,
+                          }))
+                        );
+                        setEditId(id);
+                        setNewExerciseVisible(true);
+                      }}
+                    >
+                      <i className="fa-solid fa-edit"></i>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const newExercises = [...exercises];
+                        newExercises.splice(
+                          newExercises.findIndex((e) => e.id === id),
+                          1
+                        );
+                        setExercises(newExercises);
+                        localStorage.setItem(
+                          "exercises",
+                          JSON.stringify(newExercises)
+                        );
+                      }}
+                      className="ml-4 text-slate-900 dark:text-slate-100 hover:text-red-500 dark:hover:text-red-500"
+                    >
+                      <i className="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                  <strong>Name:</strong> {workoutName}
+                  <br />
+                  <strong>Sets:</strong>
+                  <br />
+                  {Object.keys(exerciseSets).map((set) => {
+                    return (
+                      <div key={set}>
+                        <>
+                          {exerciseSets[set].value} {exerciseSets[set].type}
+                        </>
+                      </div>
+                    );
+                  })}
+                </li>
+              );
+            })}
           </ul>
         </Container>
       </main>
@@ -196,42 +201,21 @@ export default function Exercises() {
                 </button>
               )}
             </div>
-            <button
-              className={`${transition} border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 hover:-translate-y-1`}
-              onClick={() => {
-                console.log(setList);
-                setExercises([
-                  ...exercises,
-                  {
-                    id: `${exercises.length + 1}`,
-                    name,
-                    sets: setList.reduce(
-                      (acc, { type, value }, index) => ({
-                        ...acc,
-                        [index]: {
-                          [type]: type,
-                          value,
-                        },
-                      }),
-                      {} as {
-                        [key: string]: { type: "rep" | "time"; value: number };
-                      }
-                    ),
-                  },
-                ]);
-                if (typeof window !== "undefined") {
-                  localStorage.setItem(
-                    "exercises",
-                    JSON.stringify([
-                      ...exercises,
-                      {
-                        id: `${exercises.length + 1}`,
+
+            {editId ? (
+              <button
+                className={`${transition} border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 hover:-translate-y-1`}
+                onClick={() => {
+                  const newExercises = exercises.map((exercise) => {
+                    if (exercise.id === editId) {
+                      return {
+                        ...exercise,
                         name,
                         sets: setList.reduce(
                           (acc, { type, value }, index) => ({
                             ...acc,
                             [index]: {
-                              type: type,
+                              type,
                               value,
                             },
                           }),
@@ -242,15 +226,65 @@ export default function Exercises() {
                             };
                           }
                         ),
-                      },
-                    ])
-                  );
-                }
-                setNewExerciseVisible(false);
-              }}
-            >
-              <i className="fa-solid fa-dumbbell"></i> <strong>Add new</strong>
-            </button>
+                      };
+                    } else {
+                      return exercise;
+                    }
+                  });
+                  setExercises(newExercises);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem(
+                      "exercises",
+                      JSON.stringify(newExercises)
+                    );
+                  }
+                  setEditId("");
+                  setNewExerciseVisible(false);
+                }}
+              >
+                Save Edit
+              </button>
+            ) : (
+              <button
+                className={`${transition} border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 hover:-translate-y-1`}
+                onClick={() => {
+                  const id = uuidv4();
+                  const newExercises = [
+                    ...exercises,
+                    {
+                      id,
+                      name,
+                      sets: setList.reduce(
+                        (acc, { type, value }, index) => ({
+                          ...acc,
+                          [index]: {
+                            type,
+                            value,
+                          },
+                        }),
+                        {} as {
+                          [key: string]: {
+                            type: "rep" | "time";
+                            value: number;
+                          };
+                        }
+                      ),
+                    },
+                  ];
+                  setExercises(newExercises);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem(
+                      "exercises",
+                      JSON.stringify(newExercises)
+                    );
+                  }
+                  setNewExerciseVisible(false);
+                }}
+              >
+                <i className="fa-solid fa-dumbbell"></i>{" "}
+                <strong>Add new</strong>
+              </button>
+            )}
           </form>
         </div>
       </Modal>
