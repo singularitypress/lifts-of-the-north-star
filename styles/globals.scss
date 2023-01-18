@@ -16,4 +16,8 @@ html {
   @media (prefers-color-scheme: dark) {
     @apply bg-slate-900 text-slate-100;
   }
+
+  input, select {
+    @apply bg-slate-100 text-slate-900;
+  }
 }

@@ -1,17 +1,22 @@
 export interface Exercise {
   id: string;
   name: string;
-  duration?: {
-    [key: string]: number;
-  };
-  reps?: {
-    [key: string]: number;
+  sets: {
+    [key: string]: {
+      type: "rep" | "time";
+      value: number;
+    };
   };
 }
 
 export interface Workout {
   id: string;
   name: string;
-  date?: string;
   exercises: Exercise[];
+}
+
+export interface WorkoutDay {
+  id: string;
+  workouts: string;
+  date: string;
 }

@@ -1,10 +1,20 @@
-import { Container } from "@components/global";
+import { Container, Modal } from "@components/global";
 import { Exercise } from "@types";
 import Head from "next/head";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Exercises() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [newExerciseVisible, setNewExerciseVisible] = useState(false);
+  const [name, setName] = useState<string>("");
+  const [sets, setSets] = useState(0);
+  const [setList, setSetList] = useState<
+    {
+      type: "rep" | "time";
+      value: number;
+    }[]
+  >([]);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const ls = JSON.parse(localStorage.getItem("exercises") ?? "[]");
@@ -14,6 +24,14 @@ export default function Exercises() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (!newExerciseVisible) {
+      setName("");
+      setSets(0);
+      setSetList([]);
+    }
+  }, [newExerciseVisible]);
 
   const transition = "transition ease-in duration-200";
 
@@ -27,21 +45,215 @@ export default function Exercises() {
       </Head>
       <main className="pt-24">
         <Container>
-          <ul>
-            <li>
-              <button
-                className={`${transition} border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 hover:-translate-y-1`}
+          <div className="mb-4">
+            <button
+              className={`${transition} mr-4 border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 hover:-translate-y-1`}
+              onClick={() => setNewExerciseVisible(true)}
+            >
+              <i className="fa-solid fa-dumbbell"></i> <strong>Add new</strong>
+            </button>
+          </div>
+          <ul className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {exercises.map(({ id, name, sets }) => (
+              <li
+                key={id}
+                className="border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3"
               >
-                <i className="fa-solid fa-dumbbell"></i>{" "}
-                <strong>Add new</strong>
-              </button>
-            </li>
-            {exercises.map(({ id, name }) => (
-              <li key={id}>{name}</li>
+                <div className="w-full flex items-end justify-end">
+                  <button
+                    className="text-slate-900 dark:text-slate-100 hover:text-blue-500 dark:hover:text-blue-500"
+                    onClick={() => {
+                      setName(name);
+                      setSets(Object.keys(sets).length);
+                      setSetList(
+                        Object.keys(sets).map((set) => ({
+                          type: sets[set].type,
+                          value: sets[set].value,
+                        }))
+                      );
+                      setNewExerciseVisible(true);
+                    }}
+                  >
+                    <i className="fa-solid fa-edit"></i>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newExercises = [...exercises];
+                      newExercises.splice(
+                        newExercises.findIndex((e) => e.id === id),
+                        1
+                      );
+                      setExercises(newExercises);
+                      localStorage.setItem(
+                        "exercises",
+                        JSON.stringify(newExercises)
+                      );
+                    }}
+                    className="ml-4 text-slate-900 dark:text-slate-100 hover:text-red-500 dark:hover:text-red-500">
+                    <i className="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+                <strong>Name:</strong> {name}
+                <br />
+                <strong>Sets:</strong>
+                <br />
+                {Object.keys(sets).map((set) => {
+                  console.log(sets[set]);
+                  return (
+                    <div key={set}>
+                      <>
+                        {sets[set].value} {sets[set].type}
+                      </>
+                    </div>
+                  );
+                })}
+              </li>
             ))}
           </ul>
         </Container>
       </main>
+      <Modal visible={newExerciseVisible} setVisible={setNewExerciseVisible}>
+        <div className="flex flex-col items-center justify-center">
+          <h1 className="text-2xl font-bold  mb-4">Add new exercise</h1>
+          <form
+            className="flex flex-col justify-center items-start"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <label htmlFor="name" className="mb-2">
+              Name
+            </label>
+            <input
+              type="text"
+              name="name"
+              id="name"
+              placeholder="Name"
+              className="border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 mb-4"
+              value={name}
+              onChange={(e) => setName(e.target.value ?? "")}
+            />
+            <div className="mb-2">
+              {[...Array(sets)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col justify-center items-start w-full"
+                >
+                  <label htmlFor={`set-${i}`} className="mb-2">
+                    Set {i + 1}
+                  </label>
+                  <input
+                    defaultValue={0}
+                    value={setList[i]?.value}
+                    onChange={(e) => {
+                      const newList = [...setList];
+                      newList[i].value = parseInt(e.target.value || "0");
+                      setSetList(newList);
+                    }}
+                    placeholder="Reps/ Time"
+                    type="number"
+                    name={`set-${i}`}
+                    id={`set-${i}`}
+                    className="border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 mb-4"
+                  />
+                  <label htmlFor="set-type" className="mb-2">
+                    Set {i + 1} Type
+                  </label>
+                  <select
+                    name={`set-${i}-type`}
+                    id={`set-${i}-type`}
+                    className="border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 mb-4"
+                    value={setList[i]?.type}
+                    onChange={(e) => {
+                      const newList = [...setList];
+                      newList[i].type = e.target.value as "rep" | "time";
+                      setSetList(newList);
+                    }}
+                  >
+                    <option value="rep">Rep</option>
+                    <option value="time">Time</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div className="mb-4">
+              <button
+                className={`${transition} mr-4 border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 hover:-translate-y-1`}
+                onClick={() => {
+                  setSets(sets + 1);
+                  setSetList([...setList, { value: 0, type: "rep" }]);
+                }}
+              >
+                Add Set
+              </button>
+              {sets > 0 && (
+                <button
+                  className={`${transition} border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 hover:-translate-y-1`}
+                  onClick={() => {
+                    setSets(sets - 1);
+                    setSetList(setList.slice(0, -1));
+                  }}
+                >
+                  Remove Set
+                </button>
+              )}
+            </div>
+            <button
+              className={`${transition} border border-slate-900/10 dark:border-slate-100/10 rounded-md px-6 py-3 hover:-translate-y-1`}
+              onClick={() => {
+                console.log(setList);
+                setExercises([
+                  ...exercises,
+                  {
+                    id: `${exercises.length + 1}`,
+                    name,
+                    sets: setList.reduce(
+                      (acc, { type, value }, index) => ({
+                        ...acc,
+                        [index]: {
+                          [type]: type,
+                          value,
+                        },
+                      }),
+                      {} as {
+                        [key: string]: { type: "rep" | "time"; value: number };
+                      }
+                    ),
+                  },
+                ]);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem(
+                    "exercises",
+                    JSON.stringify([
+                      ...exercises,
+                      {
+                        id: `${exercises.length + 1}`,
+                        name,
+                        sets: setList.reduce(
+                          (acc, { type, value }, index) => ({
+                            ...acc,
+                            [index]: {
+                              type: type,
+                              value,
+                            },
+                          }),
+                          {} as {
+                            [key: string]: {
+                              type: "rep" | "time";
+                              value: number;
+                            };
+                          }
+                        ),
+                      },
+                    ])
+                  );
+                }
+                setNewExerciseVisible(false);
+              }}
+            >
+              <i className="fa-solid fa-dumbbell"></i> <strong>Add new</strong>
+            </button>
+          </form>
+        </div>
+      </Modal>
     </>
   );
 }
